@@ -1,15 +1,13 @@
 package net.corda.training.state;
 
-import net.corda.core.contracts.Amount;
-import net.corda.core.contracts.ContractState;
-import net.corda.core.contracts.LinearState;
-import net.corda.core.contracts.UniqueIdentifier;
+import net.corda.core.contracts.*;
 import net.corda.core.identity.Party;
 import net.corda.core.identity.AbstractParty;
 
 import java.util.*;
 import com.google.common.collect.ImmutableList;
 import net.corda.core.serialization.ConstructorForDeserialization;
+import net.corda.training.contract.IOUContract;
 
 import javax.validation.constraints.NotNull;
 
@@ -18,17 +16,55 @@ import javax.validation.constraints.NotNull;
  * instructions on how to complete the [IOUState] class.
  *
  */
-public class IOUState implements ContractState {
+@BelongsToContract(IOUContract.class)
+public class IOUState implements LinearState {
+    private final Amount<Currency> amount;
+    private final Party lender;
+    private final Party borrower;
+    private final Amount<Currency> paid;
+    private final UniqueIdentifier linearId;
 
-    public IOUState() {}
-
-    /**
-     *  This method will return a list of the nodes which can "use" this state in a valid transaction. In this case, the
-     *  lender or the borrower.
-     */
-    @Override
-    public List<AbstractParty> getParticipants() {
-        return ImmutableList.of();
+    @ConstructorForDeserialization
+    private IOUState(Amount<Currency> amount, Party lender, Party borrower, Amount<Currency> paid, UniqueIdentifier linearId) {
+        this.amount = amount;
+        this.lender = lender;
+        this.borrower = borrower;
+        this.paid = paid;
+        this.linearId = linearId;
     }
 
+    public IOUState(Amount<Currency> amount, Party lender, Party borrower) {
+        this.amount = amount;
+        this.lender = lender;
+        this.borrower = borrower;
+        this.paid = new Amount<>(0,amount.getToken());
+        this.linearId = new UniqueIdentifier();
+    }
+    public Amount<Currency> getAmount() {
+        return amount;
+    }
+    public Party getLender() {
+        return lender;
+    }
+    public Party getBorrower() {
+        return borrower;
+    }
+    public Amount<Currency> getPaid() {
+        return paid;
+    }
+    @Override
+    public List<AbstractParty> getParticipants() {
+        return ImmutableList.of(lender,borrower);
+    }
+    @Override
+    public UniqueIdentifier getLinearId(){
+        return getLinearId();
+    }
+    public IOUState pay(Amount<Currency>amountToPay){
+        Amount<Currency> newAmountPaid = this.paid.plus(amountToPay);
+        return new IOUState(amount, lender, borrower, newAmountPaid, linearId);
+    }
+    public IOUState withNewLender(Party newLender) {
+        return new IOUState(amount, newLender, borrower, paid, linearId);
+    }
 }
